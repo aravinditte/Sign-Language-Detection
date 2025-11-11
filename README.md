@@ -5,7 +5,7 @@ A comprehensive real-time sign language detection system using MediaPipe, OpenCV
 **Author:** Aravind  
 **Repository:** [github.com/aravinditte/Sign-Language-Detection](https://github.com/aravinditte/Sign-Language-Detection)
 
-## 🚀 Features
+## Features
 
 - **Real-time Hand Tracking**: Utilizes MediaPipe's hand landmark detection for accurate tracking
 - **Neural Network Classification**: Deep learning model trained on custom gesture data
@@ -15,13 +15,13 @@ A comprehensive real-time sign language detection system using MediaPipe, OpenCV
 - **Interactive UI**: Clean interface with confidence scores and FPS counter
 - **Extensible**: Easy to add new gestures and retrain
 
-## 📋 Requirements
+## Requirements
 
 - Python 3.8+
 - Webcam/Camera
 - 4GB+ RAM recommended
 
-## 🛠️ Installation
+## Installation
 
 ```bash
 # Clone the repository
@@ -36,31 +36,26 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-## 📦 Project Structure
+## Project Structure
 
 ```
 Sign-Language-Detection/
-├── src/
-│   ├── data_collection.py      # Data collection tool
-│   ├── train_model.py           # Model training script
-│   ├── real_time_detection.py  # Real-time detection
-│   └── utils.py                 # Utility functions
-├── data/
-│   └── processed/               # Collected landmark data
-├── models/
-│   ├── gesture_classifier.h5    # Trained model
-│   └── label_encoder.pkl        # Label encoder
-├── config/
-│   └── config.yaml              # Configuration file
-├── docs/
-│   ├── IMPLEMENTATION.md        # Detailed implementation guide
-│   └── COMPREHENSIVE_GUIDE.md   # Complete project guide
-├── requirements.txt
-├── README.md
-└── LICENSE
+|-- src/
+|   |-- data_collection.py      # Data collection tool
+|   |-- train_model.py           # Model training script
+|   |-- real_time_detection.py  # Real-time detection
+|   +-- utils.py                 # Utility functions
+|-- data/
+|   +-- processed/               # Collected landmark data
+|-- models/
+|   |-- gesture_classifier.h5    # Trained model
+|   +-- label_encoder.pkl        # Label encoder
+|-- requirements.txt
+|-- README.md
++-- LICENSE
 ```
 
-## 🎯 Quick Start
+## Quick Start
 
 ### 1. Collect Training Data
 
@@ -92,7 +87,7 @@ python src/real_time_detection.py
 - **S** - Screenshot
 - **R** - Reset predictions
 
-## 🧠 How It Works
+## How It Works
 
 ### Hand Landmark Detection
 
@@ -116,13 +111,17 @@ This creates a 68-dimensional feature vector.
 
 ```
 Input (68 features)
-    ↓
+    |
+    v
 Dense(128) + ReLU + BatchNorm + Dropout(0.3)
-    ↓
+    |
+    v
 Dense(64) + ReLU + BatchNorm + Dropout(0.3)
-    ↓
+    |
+    v
 Dense(32) + ReLU + BatchNorm + Dropout(0.2)
-    ↓
+    |
+    v
 Output(num_classes) + Softmax
 ```
 
@@ -136,34 +135,34 @@ Output(num_classes) + Softmax
 6. Apply temporal smoothing
 7. Display result
 
-## 📊 Performance
+## Performance
 
 - **Training Accuracy**: ~95-98%
 - **Real-time FPS**: 25-30 FPS
 - **Inference Time**: ~10-15ms per frame
 - **Hand Detection**: ~20-30ms per frame
 
-## 🔧 Configuration
+## Configuration
 
-Customize settings in `config/config.yaml`:
+Customize settings in your training/detection scripts:
 
-```yaml
-camera:
-  width: 1280
-  height: 720
-  fps: 30
+```python
+# Camera settings
+camera_width = 1280
+camera_height = 720
+camera_fps = 30
 
-mediapipe:
-  max_num_hands: 1
-  min_detection_confidence: 0.7
+# MediaPipe settings
+max_num_hands = 1
+min_detection_confidence = 0.7
 
-training:
-  epochs: 100
-  batch_size: 32
-  learning_rate: 0.001
+# Training settings
+epochs = 100
+batch_size = 32
+learning_rate = 0.001
 ```
 
-## 🎨 Extending the System
+## Extending the System
 
 ### Add New Gestures
 
@@ -188,7 +187,7 @@ training:
 - **Two-handed Gestures**: Support both hands
 - **Sentence Formation**: Combine gestures into words/sentences
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Camera Issues
 - Check camera index (try 0, 1, 2)
@@ -207,7 +206,7 @@ training:
 - Close other applications
 - Use GPU acceleration
 
-## 📈 Performance Tips
+## Performance Tips
 
 ### Speed Optimization
 - Model quantization for faster inference
@@ -221,7 +220,7 @@ training:
 - Temporal smoothing (average predictions)
 - Transfer learning from pre-trained models
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please:
 
@@ -231,25 +230,25 @@ Contributions are welcome! Please:
 4. Push to the branch
 5. Open a Pull Request
 
-## 📝 License
+## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - **MediaPipe** by Google for hand tracking
 - **OpenCV** for computer vision tools
 - **TensorFlow** for deep learning framework
 - Sign language community for inspiration
 
-## 📞 Contact
+## Contact
 
 **Aravind** - Full Stack Developer
 
 - GitHub: [@aravinditte](https://github.com/aravinditte)
 - Repository: [Sign-Language-Detection](https://github.com/aravinditte/Sign-Language-Detection)
 
-## 📚 References
+## References
 
 - [MediaPipe Hands Documentation](https://google.github.io/mediapipe/solutions/hands.html)
 - [OpenCV Python Tutorials](https://docs.opencv.org/master/d6/d00/tutorial_py_root.html)
@@ -257,17 +256,17 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ---
 
-**Built with ❤️ by Aravind**
+**Built with dedication by Aravind**
 
-## 🎯 Future Enhancements
+## Future Enhancements
 
-- [ ] Dynamic gesture recognition (hand movements over time)
-- [ ] Multi-language sign language support
-- [ ] Mobile application (iOS/Android)
-- [ ] Web-based interface
-- [ ] Cloud API deployment
-- [ ] Two-handed gesture support
-- [ ] Word and sentence prediction
-- [ ] Integration with communication apps
-- [ ] Performance analytics dashboard
-- [ ] Gesture customization interface
+- Dynamic gesture recognition (hand movements over time)
+- Multi-language sign language support
+- Mobile application (iOS/Android)
+- Web-based interface
+- Cloud API deployment
+- Two-handed gesture support
+- Word and sentence prediction
+- Integration with communication apps
+- Performance analytics dashboard
+- Gesture customization interface

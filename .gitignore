@@ -1,6 +1,7 @@
 # Python
 data
 .env
+models
 __pycache__/
 *.py[cod]
 *$py.class

@@ -1,7 +1,6 @@
 """
-Sign Language Detection - Real-time CNN Detection (Fixed)
+Sign Language Detection - Real-time CNN Detection (Debugging/Logging Version)
 Author: Aravind
-Description: Real-time sign language detection using trained CNN model with proper preprocessing
 """
 
 import cv2
@@ -12,190 +11,86 @@ from collections import deque
 import tensorflow as tf
 
 class SignLanguageCNNDetector:
-    """Real-time sign language detector using CNN model"""
-    
     def __init__(self, model_path='models/sign_language_cnn.h5',
                  classes_path='models/class_names.json'):
-        """
-        Initialize detector
-        
-        Args:
-            model_path: Path to trained CNN model
-            classes_path: Path to class names JSON
-        """
         print("Loading CNN model...")
         self.model = tf.keras.models.load_model(model_path)
-        
-        # Load class names
         with open(classes_path, 'r') as f:
             self.class_names = json.load(f)
-        
         print(f"Model loaded! Recognizing {len(self.class_names)} gestures")
         print(f"Classes: {', '.join(self.class_names)}")
-        
-        # Prediction smoothing
-        self.prediction_buffer = deque(maxlen=7)  # Increased for more stability
-        
-        # Colors
+        self.prediction_buffer = deque(maxlen=7)
         self.COLOR_GREEN = (0, 255, 0)
         self.COLOR_RED = (0, 0, 255)
         self.COLOR_BLUE = (255, 0, 0)
         self.COLOR_YELLOW = (0, 255, 255)
         self.COLOR_WHITE = (255, 255, 255)
         self.COLOR_PURPLE = (255, 0, 255)
-        
-        # ROI (Region of Interest) settings
         self.roi_size = 300
-        
-    def preprocess_frame(self, roi):
-        """
-        Preprocess ROI for model prediction - FIXED for webcam input
-        
-        Args:
-            roi: Region of interest from frame
-            
-        Returns:
-            Preprocessed image ready for model
-        """
-        # Resize to 28x28
+    def preprocess_frame(self, roi, debug=False):
         img = cv2.resize(roi, (28, 28))
-        
-        # Convert to grayscale
         if len(img.shape) == 3:
             img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        
-        # Apply Gaussian blur to reduce noise
         img = cv2.GaussianBlur(img, (3, 3), 0)
-        
-        # Apply adaptive thresholding for better hand segmentation
-        img = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, 
-                                    cv2.THRESH_BINARY_INV, 11, 2)
-        
-        # Normalize to [0, 1]
-        img = img.astype('float32') / 255.0
-        
-        # Reshape for model input (batch_size, height, width, channels)
-        img = img.reshape(1, 28, 28, 1)
-        
-        return img
-    
+        img = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 11, 2)
+        img_norm = img.astype('float32') / 255.0
+        if debug:
+            print(f"[DEBUG] ROI mean: {img_norm.mean():.4f}, min: {img_norm.min():.4f}, max: {img_norm.max():.4f}")
+            cv2.imshow("ROI_RAW", roi)
+            cv2.imshow("PREPROCESSED", img)
+        return img_norm.reshape(1, 28, 28, 1)
     def predict_gesture(self, roi):
-        """
-        Predict gesture from ROI
-        
-        Args:
-            roi: Region of interest
-            
-        Returns:
-            Tuple of (gesture_label, confidence, top3_predictions)
-        """
-        # Preprocess
-        img = self.preprocess_frame(roi)
-        
-        # Predict
+        img = self.preprocess_frame(roi, debug=True)
         prediction = self.model.predict(img, verbose=0)[0]
-        
-        # Get top 3 predictions
         top3_idx = np.argsort(prediction)[-3:][::-1]
         top3_predictions = [(self.class_names[idx], prediction[idx]) for idx in top3_idx]
-        
-        # Get top prediction
         class_idx = top3_idx[0]
         confidence = prediction[class_idx]
         gesture = self.class_names[class_idx]
-        
         return gesture, confidence, top3_predictions
-    
     def smooth_prediction(self, gesture, confidence):
-        """Smooth predictions using temporal buffer"""
         self.prediction_buffer.append((gesture, confidence))
-        
-        # Get most common prediction with high confidence
         if len(self.prediction_buffer) >= 5:
-            # Filter high confidence predictions
             high_conf_predictions = [(g, c) for g, c in self.prediction_buffer if c > 0.6]
-            
             if high_conf_predictions:
-                # Get most common gesture
-                gestures = [g for g, c in high_conf_predictions]
                 from collections import Counter
+                gestures = [g for g, c in high_conf_predictions]
                 gesture_counts = Counter(gestures)
                 most_common = gesture_counts.most_common(1)[0][0]
-                
-                # Average confidence for most common
                 avg_conf = np.mean([c for g, c in high_conf_predictions if g == most_common])
                 return most_common, avg_conf
-        
         return gesture, confidence
-    
     def draw_ui(self, frame, gesture, confidence, fps, roi_top_left, top3_predictions, preprocessed_roi):
-        """Draw user interface with enhanced feedback"""
         h, w, _ = frame.shape
-        
-        # Draw ROI rectangle
         x, y = roi_top_left
-        cv2.rectangle(frame, (x, y), (x + self.roi_size, y + self.roi_size), 
-                     self.COLOR_GREEN, 3)
-        
-        # ROI instruction
-        cv2.putText(frame, 'Place hand here (fill the box)', 
-                   (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, self.COLOR_GREEN, 2)
-        
-        # Top panel - semi-transparent overlay
+        cv2.rectangle(frame, (x, y), (x + self.roi_size, y + self.roi_size), self.COLOR_GREEN, 3)
+        cv2.putText(frame, 'Place hand here (fill the box)', (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, self.COLOR_GREEN, 2)
         overlay = frame.copy()
         cv2.rectangle(overlay, (0, 0), (w, 180), (0, 0, 0), -1)
         cv2.addWeighted(overlay, 0.6, frame, 0.4, 0, frame)
-        
-        # Title
-        cv2.putText(frame, 'Sign Language CNN Detector', 
-                   (10, 35), cv2.FONT_HERSHEY_SIMPLEX, 1.0, self.COLOR_YELLOW, 2)
-        
-        # Prediction
+        cv2.putText(frame, 'Sign Language CNN Detector', (10, 35), cv2.FONT_HERSHEY_SIMPLEX, 1.0, self.COLOR_YELLOW, 2)
         if gesture and confidence > 0.5:
             color = self.COLOR_GREEN if confidence > 0.8 else self.COLOR_YELLOW
-            cv2.putText(frame, f'Sign: {gesture}', 
-                       (10, 85), cv2.FONT_HERSHEY_SIMPLEX, 1.8, color, 4)
-            
-            # Confidence
-            cv2.putText(frame, f'Confidence: {confidence*100:.1f}%', 
-                       (10, 130), cv2.FONT_HERSHEY_SIMPLEX, 0.8, self.COLOR_WHITE, 2)
-            
-            # Show top 3 predictions
+            cv2.putText(frame, f'Sign: {gesture}', (10, 85), cv2.FONT_HERSHEY_SIMPLEX, 1.8, color, 4)
+            cv2.putText(frame, f'Confidence: {confidence*100:.1f}%', (10, 130), cv2.FONT_HERSHEY_SIMPLEX, 0.8, self.COLOR_WHITE, 2)
             cv2.putText(frame, f'Top3: {top3_predictions[0][0]}({top3_predictions[0][1]*100:.0f}%) '
                                f'{top3_predictions[1][0]}({top3_predictions[1][1]*100:.0f}%) '
-                               f'{top3_predictions[2][0]}({top3_predictions[2][1]*100:.0f}%)', 
-                       (10, 160), cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.COLOR_WHITE, 1)
+                               f'{top3_predictions[2][0]}({top3_predictions[2][1]*100:.0f}%)', (10, 160), cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.COLOR_WHITE, 1)
         else:
-            cv2.putText(frame, 'Show sign in green box', 
-                       (10, 85), cv2.FONT_HERSHEY_SIMPLEX, 1.2, self.COLOR_RED, 2)
-            cv2.putText(frame, 'Use plain background & good lighting', 
-                       (10, 130), cv2.FONT_HERSHEY_SIMPLEX, 0.7, self.COLOR_YELLOW, 2)
-        
-        # FPS
-        cv2.putText(frame, f'FPS: {fps:.1f}', 
-                   (w - 150, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.8, self.COLOR_YELLOW, 2)
-        
-        # Show preprocessed image (for debugging)
+            cv2.putText(frame, 'Show sign in green box', (10, 85), cv2.FONT_HERSHEY_SIMPLEX, 1.2, self.COLOR_RED, 2)
+            cv2.putText(frame, 'Use plain background & good lighting', (10, 130), cv2.FONT_HERSHEY_SIMPLEX, 0.7, self.COLOR_YELLOW, 2)
+        cv2.putText(frame, f'FPS: {fps:.1f}', (w - 150, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.8, self.COLOR_YELLOW, 2)
         if preprocessed_roi is not None:
             preview = cv2.resize(preprocessed_roi, (100, 100))
             frame[10:110, w-110:w-10] = cv2.cvtColor((preview * 255).astype(np.uint8), cv2.COLOR_GRAY2BGR)
             cv2.rectangle(frame, (w-110, 10), (w-10, 110), self.COLOR_WHITE, 2)
             cv2.putText(frame, 'Processed', (w-110, 125), cv2.FONT_HERSHEY_SIMPLEX, 0.4, self.COLOR_WHITE, 1)
-        
-        # Instructions
-        cv2.putText(frame, 'ESC: Exit | S: Screenshot | R: Reset | H: Help', 
-                   (10, h - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.6, self.COLOR_WHITE, 2)
-        
-        # Watermark
-        cv2.putText(frame, 'Built by Aravind', 
-                   (w - 210, h - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.7, self.COLOR_PURPLE, 2)
-    
+        cv2.putText(frame, 'ESC: Exit | S: Screenshot | R: Reset | H: Help', (10, h - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.6, self.COLOR_WHITE, 2)
+        cv2.putText(frame, 'Built by Aravind', (w - 210, h - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.7, self.COLOR_PURPLE, 2)
     def run(self):
-        """Start real-time detection"""
         cap = cv2.VideoCapture(0)
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
-        
         print("\n" + "="*60)
         print("Sign Language CNN Detection - Real-time Mode")
         print("="*60)
@@ -207,47 +102,28 @@ class SignLanguageCNNDetector:
         print("  - Hold gesture steady for 2-3 seconds")
         print("  - ESC to exit")
         print("="*60)
-        
         prev_time = time.time()
         fps = 0
         screenshot_count = 0
-        
         while cap.isOpened():
             ret, frame = cap.read()
             if not ret:
                 break
-            
             frame = cv2.flip(frame, 1)
             h, w, _ = frame.shape
-            
-            # Calculate FPS
             curr_time = time.time()
             fps = 1 / (curr_time - prev_time + 1e-6)
             prev_time = curr_time
-            
-            # Define ROI (center of frame)
             roi_x = (w - self.roi_size) // 2
             roi_y = (h - self.roi_size) // 2
             roi = frame[roi_y:roi_y + self.roi_size, roi_x:roi_x + self.roi_size]
-            
-            # Predict gesture
             gesture, confidence, top3_predictions = self.predict_gesture(roi)
             gesture, confidence = self.smooth_prediction(gesture, confidence)
-            
-            # Get preprocessed image for display
             preprocessed = self.preprocess_frame(roi).reshape(28, 28)
-            
-            # Draw UI
-            self.draw_ui(frame, gesture, confidence, fps, (roi_x, roi_y), 
-                        top3_predictions, preprocessed)
-            
-            # Display
+            self.draw_ui(frame, gesture, confidence, fps, (roi_x, roi_y), top3_predictions, preprocessed)
             cv2.imshow('Sign Language CNN Detection by Aravind', frame)
-            
-            # Keyboard controls
             key = cv2.waitKey(1) & 0xFF
-            
-            if key == 27:  # ESC
+            if key == 27:
                 break
             elif key == ord('s') or key == ord('S'):
                 screenshot_count += 1
@@ -264,17 +140,13 @@ class SignLanguageCNNDetector:
                 print("  3. Fill the green box with your hand")
                 print("  4. Hold gesture steady for 2-3 seconds")
                 print("  5. Make clear, distinct gestures")
-        
         cap.release()
         cv2.destroyAllWindows()
-        
         print("\n" + "="*60)
         print("Detection stopped. Thank you!")
         print("="*60)
-
 if __name__ == '__main__':
     import os
-    
     if not os.path.exists('models/sign_language_cnn.h5'):
         print("\nError: Model not found!")
         print("Please train the model first:")
